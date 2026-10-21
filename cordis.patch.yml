@@ -1,0 +1,9 @@
+# dsh-finance-domain bundle patch —— 单插件（finance-domain）
+#
+# name 写裸包名 `dsh-finance-domain`：单插件包，Node 解析到 exports["."]（dist-server/index.js）。
+# inject 必须与 src/plugin.ts 的 inject 完全一致：['tools', 'skills', 'fs']。
+
+- insert:
+    - id: finance-domain
+      name: dsh-finance-domain
+      inject: ['tools', 'skills', 'fs']
