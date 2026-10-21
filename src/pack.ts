@@ -43,8 +43,25 @@ const demoTool: ToolDefinition = {
   },
 }
 
-/** demo 种子 SKILL 正文（原种子 SKILL 内容，契约升级后改为注册式落盘）。 */
-const DEMO_SKILL_MARKDOWN = '# demo-skill\n\n这是 M0 组合验证用的种子 SKILL 内容。\n'
+/**
+ * demo 种子 SKILL 正文（原种子 SKILL 内容，契约升级后改为注册式落盘）。
+ *
+ * 必须带合法 YAML frontmatter：`skill-filesystem` provider 只收录含
+ * `name` + `description` frontmatter 的 `SKILL.md`，缺 frontmatter 的文件会被
+ * 静默忽略（上游行为，core 不额外兜底）。
+ */
+const DEMO_SKILL_MARKDOWN = [
+  '---',
+  'name: demo-skill',
+  'description: M0 组合验证用的种子 SKILL：演示领域包资产 bootstrap 与技能发现链路。',
+  'whenToUse: 需要在 demo 领域验证种子 SKILL 是否被 provider 收录时使用。',
+  '---',
+  '',
+  '# demo-skill',
+  '',
+  '这是 M0 组合验证用的种子 SKILL 内容。',
+  '',
+].join('\n')
 
 /** demo 领域包。 */
 export const demoPack: DomainPack = {

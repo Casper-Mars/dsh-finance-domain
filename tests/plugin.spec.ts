@@ -3,8 +3,9 @@ import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
+import SkillRegistry from '@deepseek-ai/dsh-skill'
 import { ToolRuntime } from '@deepseek-ai/dsh-tools'
-import { AgentHost, validateDomainPack } from 'dsh-rsi-agent'
+import { AgentHost, SKILL_PROVIDER_NAME, validateDomainPack } from 'dsh-rsi-agent'
 import { apply, inject, name } from '../src/plugin'
 import { demoPack } from '../src/pack'
 import { DEFAULT_FINANCE_DOMAIN_CONFIG, resolveConfig } from '../src/config'
@@ -45,13 +46,58 @@ describe('demo DomainPack 契约', () => {
       const dispose = host.install(demoPack, { home })
       const file = join(host.active!.runtime.assetsDir, 'skills', 'demo-skill', 'SKILL.md')
       expect(existsSync(file)).toBe(true)
-      expect(readFileSync(file, 'utf8')).toContain('M0 组合验证用的种子 SKILL')
+      const content = readFileSync(file, 'utf8')
+      // `skill-filesystem` provider 只收录带 name + description 的文件；
+      // 种子缺 frontmatter 会导致「安装成功但技能永不出现」。
+      expect(content.startsWith('---\n')).toBe(true)
+      expect(content).toMatch(/^---\nname: demo-skill\ndescription: .+\n/)
+      expect(content).toContain('whenToUse:')
+      expect(content).toContain('# demo-skill')
+      expect(content).toContain('这是 M0 组合验证用的种子 SKILL 内容。')
       dispose()
       expect(host.active).toBeUndefined()
     } finally {
       rmSync(home, { recursive: true, force: true })
     }
   })
+
+  it('种子 SKILL 带合法 frontmatter，install 后 await 就绪即可被 provider 收录', async () => {
+    const ctx = new Context()
+    // ToolRuntime 声明了 inject: ['systemPrompt']，用 no-op 桩提供。
+    ctx.provide(
+      'systemPrompt',
+      new Proxy(
+        {},
+        { get: (_t, property) => (property === 'then' ? undefined : () => () => {}) },
+      ) as never,
+    )
+    ctx.plugin(ToolRuntime)
+    const deadline = Date.now() + 2000
+    while (ctx.tools === undefined) {
+      if (Date.now() > deadline) throw new Error('ToolRuntime 未上线')
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
+    await (ctx.plugin(SkillRegistry as never) as unknown as Promise<unknown>)
+
+    const home = mkdtempSync(join(tmpdir(), 'finance-domain-skill-'))
+    const host = new AgentHost(ctx)
+    const dispose = host.install(demoPack, { home })
+    try {
+      // 缺 frontmatter 时这里永远等不到条目（历史 bug：安装成功但技能不可见）。
+      await host.skillProviderReady
+      const list = (ctx.skills as unknown as {
+        list(options: unknown): Promise<Array<{ name: string; provider?: string }>>
+      }).list.bind(ctx.skills)
+      const skills = await list({})
+      const found = skills.find((skill) => skill.name === 'demo-skill')
+      expect(found, '种子 SKILL 必须被 skill-filesystem 收录').toBeDefined()
+      expect(found?.provider).toBe(SKILL_PROVIDER_NAME)
+    } finally {
+      dispose()
+      await ctx.fiber.dispose()
+      rmSync(home, { recursive: true, force: true })
+    }
+  }, 20_000)
 
   it('demo_echo 是异步 execute，并回显 text', async () => {
     const [tool] = demoPack.tools({} as never, {} as never)
