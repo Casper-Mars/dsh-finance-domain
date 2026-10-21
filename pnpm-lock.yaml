@@ -4,9 +4,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  dsh-rsi-agent: link:../dsh-rsi-agent
+
 importers:
 
   .:
+    dependencies:
+      dsh-rsi-agent:
+        specifier: link:../dsh-rsi-agent
+        version: link:../dsh-rsi-agent
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: ^4.0.5
@@ -26,9 +33,6 @@ importers:
       '@types/node':
         specifier: ^22.13.0
         version: 22.20.5
-      dsh-rsi-agent:
-        specifier: link:../dsh-rsi-agent
-        version: link:../dsh-rsi-agent
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

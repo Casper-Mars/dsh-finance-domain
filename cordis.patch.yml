@@ -1,9 +1,14 @@
-# dsh-finance-domain bundle patch —— 单插件（finance-domain）
+# dsh-finance-domain bundle patch —— 领域包自带「core + domain」两层
 #
-# name 写裸包名 `dsh-finance-domain`：单插件包，Node 解析到 exports["."]（dist-server/index.js）。
-# inject 必须与 src/plugin.ts 的 inject 完全一致：['tools', 'skills', 'fs']。
+# 只需 `dsh plugin --profile <p> add <本包>`：pnpm 装好本包后，bundle patch 一次
+# 插入两层，profile 里同时得到 rsi-agent（agentHost 提供方）与本领域。
+#
+# id/name/inject 必须与两边 src/plugin.ts 逐项一致。
 
 - insert:
+    - id: rsi-agent
+      name: dsh-rsi-agent
+      inject: ['tools', 'skills', 'fs']
     - id: finance-domain
       name: dsh-finance-domain
-      inject: ['tools', 'skills', 'fs']
+      inject: ['agentHost']
