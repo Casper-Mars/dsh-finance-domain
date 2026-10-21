@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { ToolRuntime } from '@deepseek-ai/dsh-tools'
-import { validateDomainPack } from 'dsh-rsi-agent'
+import { AgentHost, validateDomainPack } from 'dsh-rsi-agent'
 import { apply, inject, name } from '../src/plugin'
 import { demoPack } from '../src/pack'
 import { DEFAULT_FINANCE_DOMAIN_CONFIG, resolveConfig } from '../src/config'
@@ -25,6 +28,29 @@ describe('demo DomainPack 契约', () => {
     const validated = validateDomainPack(demoPack)
     expect(validated.toolNames).toEqual(['demo_echo'])
     expect(validated.personaMarkdown).toContain('Demo Persona')
+  })
+
+  it('assets.types 声明 record / skill 两个不重叠分区', () => {
+    expect(demoPack.assets.types.map((item) => [item.name, item.prefix])).toEqual([
+      ['record', 'records/'],
+      ['skill', 'skills/'],
+    ])
+    expect(demoPack.firmwareSkills).toEqual([])
+  })
+
+  it('install 时 bootstrap 把种子 SKILL 真的落到 skills/demo-skill/SKILL.md', () => {
+    const home = mkdtempSync(join(tmpdir(), 'finance-domain-'))
+    try {
+      const host = new AgentHost(new Context())
+      const dispose = host.install(demoPack, { home })
+      const file = join(host.active!.runtime.assetsDir, 'skills', 'demo-skill', 'SKILL.md')
+      expect(existsSync(file)).toBe(true)
+      expect(readFileSync(file, 'utf8')).toContain('M0 组合验证用的种子 SKILL')
+      dispose()
+      expect(host.active).toBeUndefined()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
   })
 
   it('demo_echo 是异步 execute，并回显 text', async () => {

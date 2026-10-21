@@ -43,6 +43,9 @@ const demoTool: ToolDefinition = {
   },
 }
 
+/** demo 种子 SKILL 正文（原种子 SKILL 内容，契约升级后改为注册式落盘）。 */
+const DEMO_SKILL_MARKDOWN = '# demo-skill\n\n这是 M0 组合验证用的种子 SKILL 内容。\n'
+
 /** demo 领域包。 */
 export const demoPack: DomainPack = {
   apiVersion: 1,
@@ -53,24 +56,28 @@ export const demoPack: DomainPack = {
   persona: {
     markdown: () => '# Demo Persona\n\n你是 demo 领域代理。',
   },
-  skills: {
-    evolvable: [
-      {
-        name: 'demo-skill',
-        description: 'M0 组合验证用的种子 SKILL',
-        markdown: '# demo-skill\n\n这是 M0 组合验证用的种子 SKILL 内容。\n',
-      },
+  assets: {
+    types: [
+      { name: 'record', prefix: 'records/' },
+      { name: 'skill', prefix: 'skills/' },
     ],
+    /**
+     * 注册式资产入口（§11.1）：种子 SKILL 以 `skills/` 下的文件形式落盘。
+     * 必须**同步**；抛错会让 core 回滚整个 install。
+     */
+    bootstrap(writer) {
+      writer.register({
+        type: 'skill',
+        path: 'skills/demo-skill/SKILL.md',
+        content: DEMO_SKILL_MARKDOWN,
+        message: 'seed demo skill',
+      })
+    },
   },
+  // demo 领域不自带固有 SKILL；core 内置的三个固件 SKILL 由 core 注册。
+  firmwareSkills: [],
   tools: () => [demoTool],
   toolNames: ['demo_echo'],
-  assetTypes: [
-    {
-      name: 'records',
-      prefix: 'records/',
-      description: 'demo 领域的记录资产分区',
-    },
-  ],
   scheduler: {
     timezone: 'Asia/Shanghai',
   },
