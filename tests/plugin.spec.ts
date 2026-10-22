@@ -32,10 +32,13 @@ describe('demo DomainPack 契约', () => {
   })
 
   it('assets.types 声明 record / skill 两个不重叠分区', () => {
-    expect(demoPack.assets.types.map((item) => [item.name, item.prefix])).toEqual([
+    // 顺序不重要（声明顺序即 list 扫描顺序），但集合必须恰好是这两项。
+    expect(demoPack.assets.types.map((item) => [item.name, item.prefix]).sort()).toEqual([
       ['record', 'records/'],
       ['skill', 'skills/'],
     ])
+    // 声明顺序决定 assets.list 的扫描顺序，产品上要求稳定（skill 在前）。
+    expect(demoPack.assets.types.map((item) => item.name)).toEqual(['skill', 'record'])
     expect(demoPack.firmwareSkills).toEqual([])
   })
 
